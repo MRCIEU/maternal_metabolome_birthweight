@@ -1,0 +1,127 @@
+## Main analysis
+devtools::install_github("NightingaleHealth/ggforestplot")
+library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);library(stringr);library(readxl)
+library(tidyverse); library(ggforestplot)
+source("VZ_summary_mvMR_SSS_function.R")
+source("VZ_summary_mvMR_BF_function.R")
+`%!in%`=Negate(`%in%`)
+
+# I. Multiple independent SNPs
+
+# 1. Select genetic instruments, p-value<5x10^-8, Rsq<0.01
+# load the snps identified in the kettunen GWAS previously
+ket_gwas=read_csv("kettgwas_to_include")
+nmr_metabolites=read_excel("nmr_metabolites")
+nmr_metabolites=nmr_metabolites[which(nmr_metabolites$Include=="yes"),]
+colnames(nmr_metabolites)[1]="GWAS_id"
+nmr_metabolites$GWAS_id=paste0("met-d-", nmr_metabolites$GWAS_id)
+ao=available_outcomes()
+ao_1=ao[which(ao$year==2016&ao$author=="Kettunen"&ao$category=="Metabolites"&ao$population=="European"),]
+ket_gwas=ao_1[which(ao_1$trait%in%ket_gwas$id.exposure),]
+
+# snps from other GWAS
+other=c("ieu-a-300","ieu-a-299", "ieu-a-302", "ebi-a-GCST005186", "ebi-a-GCST004939", "ieu-a-1105")
+ldl_c=ao[grep("ieu-a-300", ao$id),]
+hdl_c=ao[grep("ieu-a-299", ao$id),]
+TG=ao[grep("ieu-a-302", ao$id),]
+Glucose=ao[grep("ebi-a-GCST005186", ao$id),]
+Glycated_haemoglobin=ao[grep("ebi-a-GCST004939", ao$id),]
+Serum_creatinine=ao[grep("ieu-a-1105", ao$id),]
+find_snps=rbind(ket_gwas, ldl_c, hdl_c, TG, Glucose, Glycated_haemoglobin, Serum_creatinine)
+multi_snps=extract_instruments(find_snps$id, p1 = 5e-08,r2 = 0.01,p2 = 5e-08)
+
+# 2. Extract SNP-exposure data for select SNPs
+exposure_data=multi_snps
+
+# 3. Extract snp-outcome data for select SNPs
+# load outcome data - Warrington GWAS of maternal genetic effects on birthweight, adjusted for fetal genotype
+outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="UKBB_birthweight",
+                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+
+# 4. Harmonise snp-exposure and snp-outcome data
+uvmr_harm=harmonise_data(multi_snps, outcome_dat, action=2) 
+
+# 5. Run Wald ratio or IVW
+estimates=mr(uvmr_harm, method_list=c("mr_wald_ratio", "mr_ivw"))
+colnames(estimates)[1]="id"
+ao=available_outcomes()
+ao_1=ao[which(ao$id%in%find_snps$id),]
+ao_1=ao_1[which(ao_1$id%in%estimates$id),c("id", "trait")]
+estimates=merge(estimates, ao_1, by="id")
+
+# 6. Run MVMR-BMA
+mvmr_instruments=mv_extract_exposures(find_snps$id, pval_threshold=5e-8,clump_r2=0.01)
+multi_snps=pull(mvmr_instruments, SNP)
+expdat=extract_outcome_data(snps = multi_snps, outcome = nmr_metabolites$GWAS_id)
+names(expdat)=gsub("outcome", "exposure", names(expdat))
+outcome_dat=read_outcome_data(snps=multi_snps, filename="UKBB_birthweight",
+                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+mvmr_harm=harmonise_data(expdat, outcome_dat, action=2) 
+
+setDT(mvmr_harm)
+test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
+test=as.matrix(test)
+col=as.numeric(grep("exposure|SNP", colnames(test)))
+test=test[,col]
+length(unique(test[,1]))
+snps=unique(mvmr_harm$SNP)
+effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
+colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+for (i in 1:length(snps))
+{
+  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+}
+merged=merge(effect_alleles, test, by="SNP")
+merged=unique(merged)
+reshaped_mvmr_data=merged
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
+                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+rs=reshaped_mvmr_data$SNP
+bw_beta=outcome_dat$beta.outcome
+bw_se=outcome_dat$se.outcome
+find_beta_cols=grep("beta.exposure", names(reshaped_mvmr_data))
+betaX_2=reshaped_mvmr_data[,find_beta_cols]
+rf_2=colnames(betaX_2)
+rs_2=reshaped_mvmr_data[,1]
+betaX_2.2=sapply(betaX_2, as.numeric )        
+betaX_ivw_2=betaX_2.2/bw_se
+bw_beta_ivw_2=bw_beta/bw_se
+bw_nmr_input_2=new(Class = "mvMRInput", betaX = as.matrix(betaX_ivw_2), betaY=as.matrix(bw_beta_ivw_2), snps=rs_2, exposure=rf_2, outcome = "Birthweight")
+
+BMA_output=summarymvMR_SSS(bw_nmr_input_2, kmin=1, kmax=12, prior_prob=0.1, max_iter=100000)
+mr.bw_BMA.out.step1=sss.report.mr.bma(BMA_output, top=10)
+best.model.out.step1=sss.report.best.model(BMA_output, prior_sigma=0.5, top=10)
+
+rename_traits=as.data.frame(best.model.out.step1)
+rename_traits$`rf combination`=gsub("beta.exposure.","",rename_traits$`rf combination`)
+rename_traits_mr=as.data.frame(mr.bw_BMA.out.step1)
+rename_traits_mr$rf=gsub("beta.exposure.","",rename_traits_mr$rf)
+ao=ao[grep("met-d", ao$id),]
+for (j in 1:nrow(ao))
+{
+  rename_traits$`rf combination`=gsub(ao$id[j], ao$trait[j], rename_traits$`rf combination`)
+  rename_traits_mr$rf=gsub(ao$id[j], ao$trait[j], rename_traits_mr$rf)
+}
+best.model.out.updated=rename_traits
+mr.bw_BMA.out.updated=rename_traits_mr
+best.model.out.updated=apply(best.model.out.updated, 2, as.character)
+mr.bw_BMA.out.updated=apply(mr.bw_BMA.out.updated, 2, as.character)
+
+
+# Q-statistics, df~= number of SNPs
+model_index=best.model.out.step1[1,1]
+Q = matrix(ncol=1, nrow=length(bw_beta_ivw_2))
+betaX_model=as.matrix(betaX_ivw_2[,unlist(model_index, ",")])
+title=model_index
+sigma_vec=rep(0.5, ncol(betaX_model))
+H_fm=betaX_model%*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
+predicted_bw=H_fm %*% bw_beta_ivw_2
+Q=(bw_beta_ivw_2-predicted_bw)^2
+maxQ=apply(Q, MARGIN=1, FUN=max)
+sort.ix = sort.int(maxQ, decreasing=TRUE, index.return=TRUE)
+Q_tab=cbind(rs_2,Q) 
+qchisq(0.05, 195, lower.tail=F)
+
+# remove rs3780181, rs11708067, rs4554975, rs1260326, rs2861422, rs4722551, rs4148005, rs6567160,
+# rs2075650, rs3741414, rs4969178, rs228611, rs1877031, rs4240624, rs11959928, rs11674085, rs2712184
+# rs11195502, rs653178, rs6065311, rs3758086
