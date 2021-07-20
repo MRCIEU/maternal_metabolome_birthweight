@@ -6,14 +6,12 @@ library(data.table)
 library(TwoSampleMR)
 library(stringr)
 
-`%!in%`=Negate(`%in%`)
-
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
 
 ao=available_outcomes()
-mvmr_harm=read_csv("mvmr_harm")
-nmr_metabolites_UKBB=read_csv("nmr_metabolites")
+mvmr_harm=read_csv("mvmr_harm.csv")
+nmr_metabolites_UKBB=read_csv("nmr_metabolites.csv")
 
 #reshape dataframe
 setDT(mvmr_harm)
@@ -24,14 +22,14 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_instruments_ukbb[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight", beta_col = "beta",effect_allele_col = "ea",other_allele_col = "nea" ,
-                               eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=merged$SNP, filename="Maternal_Effect_European_meta_NG2019.txt", beta_col = "beta", effect_allele_col = "ea", other_allele_col = "nea" ,
+                               eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 rs=merged$SNP
 bw_beta=outcome_dat$beta.outcome
 bw_se=outcome_dat$se.outcome
