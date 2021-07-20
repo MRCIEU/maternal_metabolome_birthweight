@@ -1,5 +1,4 @@
 library(dplyr);library(readr);library(TwoSampleMR);library(stringr)
-`%!in%`=Negate(`%in%`)
 
 ## UKBB
 # UVMR
@@ -31,7 +30,7 @@ models$se=round(models$se, 3)
 setwd("")
 estimates=read.csv("uvmr_estimates.csv")
 models=read_csv("kett_best_model_out_default_2.csv")[,-1]
-uvmr_subset=estimates[which(estimates$trait%in%models$`rf combination`[which(1:10%!in%grep(",", models$`rf combination`))]),c("trait","b","se")]
+uvmr_subset=estimates[which(estimates$trait%in%models$`rf combination`[-which(1:10%in%grep(",", models$`rf combination`))]),c("trait","b","se")]
 uvmr_subset[,4]=round(uvmr_subset[,2]-1.96*uvmr_subset[,3],3)
 uvmr_subset[,5]=round(uvmr_subset[,2]+1.96*uvmr_subset[,3], 3)
 uvmr_subset[,6]=paste0("(",uvmr_subset[,4],", ", uvmr_subset[,5],")")
