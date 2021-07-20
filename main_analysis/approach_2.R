@@ -3,12 +3,11 @@ library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);libra
 library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 # II. Kettunen SNPs only
 
 # 1. Select genetic instruments, p-value<5x10^-8, Rsq<0.01
-nmr_metabolites=read_excel("nmr_metabolites")
+nmr_metabolites=read_excel("nmr_metabolites.xlsx")
 nmr_metabolites=nmr_metabolites[which(nmr_metabolites$Include=="yes"),]
 colnames(nmr_metabolites)[1]="GWAS_id"
 nmr_metabolites$GWAS_id=paste0("met-d-", nmr_metabolites$GWAS_id)
@@ -32,8 +31,8 @@ exposure_data=uvmr_instruments
 # 3. Extract snp-outcome data for select SNPs, univariate instruments
 
 # load outcome data - Warrington GWAS of maternal genetic effects on birthweight, adjusted for fetal genotype
-outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="UKBB_birthweight",snp_col="RSID", beta_col="beta",
-                              effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col="beta",
+                              effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p")
 
  # 4. Harmonise snp-exposure and snp-outcome data
 uvmr_harm=harmonise_data(exposure_data, outcome_dat, action=2)
@@ -51,8 +50,8 @@ mvmr_instruments=mv_extract_exposures(unlist(list_of_datasets$id),pval_threshold
 ket_snps=pull(mvmr_instruments, SNP)
 expdat=extract_outcome_data(snps = ket_snps, outcome = nmr_metabolites$GWAS_id)
 names(expdat)=gsub("outcome", "exposure", names(expdat))
-outcome_dat=read_outcome_data(snps=ket_snps, filename="UKBB_birthweight",
-                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+outcome_dat=read_outcome_data(snps=ket_snps, filename="Maternal_Effect_European_meta_NG2019.txt",
+                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p")
 mvmr_harm=harmonise_data(expdat, outcome_dat, action=2) 
 
 setDT(mvmr_harm)
@@ -69,8 +68,8 @@ for (i in 1:length(snps))
   effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
 }
 merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
-                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt", snp_col="RSID", beta_col = "beta",
+                              effect_allele_col = "ea", other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p")
 reshaped_mvmr_data=merged
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
