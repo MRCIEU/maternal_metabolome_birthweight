@@ -25,7 +25,7 @@ effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
 colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,]=mvmr_instruments_ukbb[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
+  effect_alleles[i,]=mvmr_harm[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 outcome_dat=read_outcome_data(snps=merged$SNP, filename="Maternal_Effect_European_meta_NG2019.txt", beta_col = "beta", effect_allele_col = "ea", other_allele_col = "nea" ,
