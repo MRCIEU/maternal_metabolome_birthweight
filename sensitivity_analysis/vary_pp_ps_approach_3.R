@@ -6,14 +6,12 @@ library(data.table)
 library(TwoSampleMR)
 library(stringr)
 
-`%!in%`=Negate(`%in%`)
-
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
 
 ao=available_outcomes()
-mvmr_harm=read_csv("mvmr_harm")
-nmr_metabolites_UKBB=read_csv("nmr_metabolites")
+mvmr_harm=read_csv("mvmr_harm.csv")
+nmr_metabolites_UKBB=read_csv("nmr_metabolites.csv")
 
 #reshape dataframe
 setDT(mvmr_harm)
@@ -24,21 +22,21 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_instruments_ukbb[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 merged=unique(merged)
 reshaped_mvmr_data=merged
-outcome_dat=read_outcome_data(snps=reshaped_mvmr_data$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
-                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=reshaped_mvmr_data$SNP,filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
+                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
 bw_se=outcome_dat$se.outcome
-find_beta_cols=grep("beta.exposure",names(reshaped_mvmr_data))
+find_beta_cols=grep("beta.exposure", names(reshaped_mvmr_data))
 betaX_2=reshaped_mvmr_data[,find_beta_cols]
 rf_2=colnames(betaX_2)
 rs_2=reshaped_mvmr_data[, 1]
@@ -201,7 +199,7 @@ for (j in 1:nrow(trait_linkage))
 title=gsub("beta.exposure.","",title)
 
 plot_list=list()
-pdf("cooks_d_plots")
+pdf("cooks_d_plots.pdf")
 for(i in 1:nr_diag){
   df = data.frame(x=predicted_bw[,i], y =bw_beta_ivw_2, cD = cD[,i], rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
   p=ggplot(df, aes(x, y)) + geom_point(aes(colour = cD), size =4) +
@@ -217,7 +215,7 @@ for(i in 1:nr_diag){
 dev.off
 
 plot_list=list()
-pdf("q_plots")
+pdf("q_plots.pdf")
 for(i in 1:nr_diag){
   
   df = data.frame(x=predicted_bw[,i], y =bw_beta_ivw_2, Q = Q[,i], rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
