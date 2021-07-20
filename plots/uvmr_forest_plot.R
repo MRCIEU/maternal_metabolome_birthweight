@@ -1,10 +1,10 @@
 ## Forestplot
 
-kett_uvmr_results=read_csv("kett_uvmr_results")
-ukbb_uvmr_results=read_csv("ukbb_uvmr_results")
+kett_uvmr_results=read_csv("kett_uvmr_results.csv")
+ukbb_uvmr_results=read_csv("ukbb_uvmr_results.csv")
 kett_uvmr_results$Dataset="Kettunen"
 ukbb_uvmr_results$Dataset="UKBB"
-nmr_metabolites_UKBB=read_excel("nmr_metabolites")
+nmr_metabolites_UKBB=read_excel("nmr_metabolites.xlsx")
 ao=available_outcomes()
 ao_1=ao[grep("met-d-", ao$id),]
 ao_1=ao_1[which(ao_1$trait%in%ukbb_uvmr_results$id),]
@@ -44,7 +44,7 @@ dataframe$group[which(is.na(dataframe$group))]=nmr_metabolites$Group[which(nmr_m
                                                                              dataframe$trait[which(is.na(dataframe$group))])]
 dataframe=dataframe[order(dataframe$trait),]
 
-png("forest_plot", width = 1000, height = 1400)
+png("forest_plot.png", width = 1000, height = 1400)
 ggforestplot::forestplot(df=dataframe, estimate=`Effect estimate (95% CI)`, pvalue = pval, name=trait, 
                          colour=Dataset, shape=Dataset)+ggforce::facet_col(facets=~group, scales="free_y", space="free")
 dev.off()
