@@ -1,14 +1,18 @@
 ## Heatmaps
 library(readr);library(gplots)
 
+nmr_metabolites=read_excel("nmr_metabolites.xlsx")
+nmr_metabolites=nmr_metabolites[which(nmr_metabolites$Include=="yes"),]
+
 # I. UKBB
-mvmr_harm=read_csv("ukbb_mvmr_harm")
+mvmr_harm=read_csv("ukbb_mvmr_harm.csv")
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
 test=as.data.frame(test)[,grep("beta.exposure", colnames(test))]
 ao=available_outcomes()
 ao_1=ao[which(ao$year==2020&ao$author=="Borges CM"),]
+ao_1=ao_1[which(ao_1$trait%in%nmr_metabolites$`Biomarker name`),]
 colnames(test)=sub("beta.exposure.","", colnames(test))
 
 test=apply(test, 2, function(x) as.numeric(as.character(x)))
@@ -26,7 +30,7 @@ heatmap.2(cormatrix, scale = "none", col = bluered(100),
 graphics.off()
 
 # II. Kett
-mvmr_harm=read_csv("kett_snps_mvmr_harm")
+mvmr_harm=read_csv("kett_snps_mvmr_harm.csv")
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.data.frame(test)[,grep("beta.exposure", colnames(test))]
@@ -49,7 +53,7 @@ heatmap.2(cormatrix, scale = "none", col = bluered(100),
 graphics.off()
 
 # III. Multi
-mvmr_harm=read_csv("multi_snps_mvmr_harm")
+mvmr_harm=read_csv("multi_snps_mvmr_harm.csv")
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
