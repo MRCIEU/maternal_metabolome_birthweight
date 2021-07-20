@@ -4,11 +4,10 @@
 
 library(readr);library(TwoSampleMR);library(data.table);library(readxl);library(remotes);library(stringr)
 ao=available_outcomes()
-`%!in%`=Negate(`%in%`)
 install_github("WSpiller/MVMR", build_opts = c("--no-resave-data", "--no-manual"), build_vignettes = TRUE, force=T)
 
-pheno_cov=read.delim("pheno_cov")
-nmr_metabolites_UKBB=read_xlsx("nmr_metabolites")
+pheno_cov=read.delim("pheno_cov.txt")
+nmr_metabolites_UKBB=read_xlsx("nmr_metabolites.xlsx")
 nmr_metabolites_UKBB=nmr_metabolites_UKBB[which(nmr_metabolites_UKBB$Include=="yes"),]
 colnames(ao)[2]="Biomarker name"
 ao1=ao[which(ao$author=="Borges CM"&ao$`Biomarker name`%in%nmr_metabolites_UKBB$`Biomarker name`),]
@@ -18,8 +17,8 @@ pheno_cov=pheno_cov[which(rownames(pheno_cov)%in%nmr_metabolites_UKBB$id), which
 
 ## UKBB
 # mean f-statistic
-models=read_csv("models")
-uvmr_harm=read_csv("uvmr_harm")
+models=read_csv("models.csv")
+uvmr_harm=read_csv("uvmr_harm.csv")
 uvmr_harm$pre_fstat=(uvmr_harm$beta.exposure^2)/(uvmr_harm$se.exposure^2)
 mean_fstat_ukbb=data.frame(NA,NA)
 colnames(mean_fstat_ukbb)=c("model", "f-stat")
@@ -33,8 +32,8 @@ rm(list=ls())
 
 ## Kettunen
 # mean f-statistic
-models=read_csv("models")
-uvmr_harm=read_csv("uvmr_harm")
+models=read_csv("models.csv")
+uvmr_harm=read_csv("uvmr_harm.csv")
 uvmr_harm$pre_fstat=(uvmr_harm$beta.exposure^2)/(uvmr_harm$se.exposure^2)
 mean_fstat_kett=data.frame(NA,NA)
 colnames(mean_fstat_kett)=c("model", "f-stat")
@@ -80,7 +79,7 @@ rm(list=ls())
 
 ## Multi
 # mean f-statistic
-models=read_csv("models")
+models=read_csv("models.csv")
 
 # note - some metabolites suggested only available in UKBB
 exposure_data=extract_instruments(models$gwas_id, p1=5e-8, clump=T, r2=0.01)
