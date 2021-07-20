@@ -46,7 +46,7 @@ bw_nmr_input_2=new(Class = "mvMRInput", betaX = as.matrix(betaX_ivw_2), betaY=as
 
 ao=available_outcomes()
 ao=ao[grep("met-d", ao$id),]
-ao=ao[which(ao$id%in%nmr_metabolites_UKBB$Name),]
+ao=ao[which(ao $trait%in%nmr_metabolites_UKBB$`Biomarker name`),]
 
 prior_prob=c(0.01, 0.05, 0.10, 0.20, 0.30)
 mr.bw_BMA.out.step1=vector("list",length(prior_prob))
