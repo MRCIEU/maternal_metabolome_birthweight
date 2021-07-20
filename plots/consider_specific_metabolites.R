@@ -1,9 +1,8 @@
 ## additional plots
 library(readr);library(data.table);library(TwoSampleMR)
-`%!in%`=Negate(`%in%`)
 
 ## UKBB data
-ukbb_mvmr_harm=read_csv("ukbb_mvmr_harm")
+ukbb_mvmr_harm=read_csv("ukbb_mvmr_harm.csv")
 setDT(ukbb_mvmr_harm)
 test=reshape(ukbb_mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
@@ -12,14 +11,14 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(ukbb_mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(ukbb_mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
-        effect_alleles[i,1:3]=ukbb_mvmr_harm[i,c(1,9,10)]
+        effect_alleles[i,]=ukbb_mvmr_harm[i,c("SNP", "eaf.outcome", "remove")]
 }
 merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
-                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight", snp_col="RSID", beta_col = "beta",
+                              effect_allele_col = "ea", other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 beta_x_leu=as.numeric(merged$`beta.exposure.met-d-Leu`)
 se_x_leu=as.numeric(merged$`se.exposure.met-d-Leu`)
 beta_y_leu=as.numeric(outcome_dat$beta.outcome)
@@ -64,14 +63,14 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(kett_mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(kett_mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
-        effect_alleles[i,1:3]=kett_mvmr_harm[i,c(1,9,10)]
+        effect_alleles[i,]=kett_mvmr_harm[i,c("SNP", "eaf.outcome", "remove")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
-                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+                              effect_allele_col = "ea", other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 
 beta_x_pyr=as.numeric(merged$`beta.exposure.met-d-Pyruvate`)
 se_x_pyr=as.numeric(merged$`se.exposure.met-d-Pyruvate`)
