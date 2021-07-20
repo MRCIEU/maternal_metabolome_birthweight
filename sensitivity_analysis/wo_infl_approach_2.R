@@ -6,7 +6,6 @@ library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);libra
 library(tidyverse); library(ggforestplot); library(mr.raps)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 mvmr_harm_wo_infl=read_csv("kett_mvmr_harm.csv")
 influ=c("rs34346326", "rs41272659", "rs12325419", "rs118182637", "rs2079742", "rs4410345", "rs4149307",
