@@ -3,11 +3,10 @@ library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);libra
 library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 ## UKBB
 setwd()
-nmr_metabolites=read_excel("nmr_metabolites")
+nmr_metabolites=read_excel("nmr_metabolites.xlsx")
 colnames(nmr_metabolites)[1]="GWAS_id"
 nmr_metabolites$GWAS_id=paste0("met-d-", nmr_metabolites$GWAS_id)
 nmr_metabolites_EG=nmr_metabolites[which(nmr_metabolites$Include=="yes"),]
@@ -16,8 +15,8 @@ mvmr_instruments=mv_extract_exposures(nmr_metabolites_EG$GWAS_id,pval_threshold=
 EG_snps=pull(mvmr_instruments, SNP)
 expdat=extract_outcome_data(snps = EG_snps, outcome = nmr_metabolites_EG$GWAS_id)
 names(expdat)=gsub("outcome", "exposure", names(expdat))
-outcome_dat=read_outcome_data(snps=EG_snps, filename="UKBB_birthweight",snp_col="RSID", beta_col="beta", effect_allele_col="ea",
-                               other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+outcome_dat=read_outcome_data(snps=EG_snps, filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col="beta", effect_allele_col="ea",
+                               other_allele_col="nea", eaf_col="eaf", pval_col="p")
 mvmr_harm=harmonise_data(expdat, outcome_dat, action=2) 
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
@@ -27,10 +26,10 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_harm[i,c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 reshaped_mvmr_data=merged
@@ -71,7 +70,7 @@ rm(list=ls())
 
 ## Kett
 setwd()
-nmr_metabolites=read_excel(nmr_metabolites")
+nmr_metabolites=read_excel("nmr_metabolites.xlsx")
 nmr_metabolites=nmr_metabolites[which(nmr_metabolites$Include=="yes"),]
 colnames(nmr_metabolites)[1]="GWAS_id"
 nmr_metabolites$GWAS_id=paste0("met-d-", nmr_metabolites$GWAS_id)
@@ -83,8 +82,8 @@ mvmr_instruments=mv_extract_exposures(EG_ids,pval_threshold=5e-8,clump_r2=0.01)
 EG_snps=pull(mvmr_instruments, SNP)
 expdat=extract_outcome_data(snps = EG_snps, outcome = nmr_metabolites_EG$GWAS_id)
 names(expdat)=gsub("outcome", "exposure", names(expdat))
-outcome_dat=read_outcome_data(snps=EG_snps, filename="UKBB_birthweight",snp_col="RSID", beta_col="beta", effect_allele_col="ea",
-                               other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+outcome_dat=read_outcome_data(snps=EG_snps, filename="Maternal_Effect_European_meta_NG2019.txt", snp_col="RSID", beta_col="beta", effect_allele_col="ea",
+                               other_allele_col="nea", eaf_col="eaf", pval_col="p")
 mvmr_harm=harmonise_data(expdat, outcome_dat, action=2) 
 
 setDT(mvmr_harm)
@@ -95,14 +94,14 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_harm[i,c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
-                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
+                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 reshaped_mvmr_data=merged
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
@@ -155,7 +154,7 @@ EG_snps=pull(multi_snps, SNP)
 expdat=extract_outcome_data(snps = EG_snps, outcome = nmr_metabolites_EG$GWAS_id)
 names(expdat)=gsub("outcome", "exposure", names(expdat))
 outcome_dat=read_outcome_data(snps=EG_snps, filename="UKBB_birthweight",snp_col="RSID", beta_col="beta", effect_allele_col="ea",
-                               other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+                               other_allele_col="nea", eaf_col="eaf", pval_col="p")
 mvmr_harm=harmonise_data(expdat, outcome_dat, action=2) 
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
@@ -165,14 +164,14 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_harm[i,c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
-                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 reshaped_mvmr_data=merged
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
