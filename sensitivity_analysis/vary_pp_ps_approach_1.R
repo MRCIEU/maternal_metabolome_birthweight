@@ -6,14 +6,14 @@ library(data.table)
 library(TwoSampleMR)
 library(stringr)
 
-`%!in%`=Negate(`%in%`)
-
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
 
 ao=available_outcomes()
-mvmr_harm=read_csv("mvmr_harm")
-nmr_metabolites_UKBB=read_csv("nmr_metabolites")
+mvmr_harm=read_csv("mvmr_harm.csv")
+nmr_metabolites_UKBB=read_excel("nmr_metabolites.xlsx")
+nmr_metabolites_UKBB=nmr_metabolites_UKBB[which(nmr_metabolites_UKBB$Include=="yes"),]
+
 setDT(mvmr_harm)
 test=reshape(mvmr_harm, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
@@ -22,15 +22,15 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_instruments_ukbb[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 reshaped_mvmr_data=merged
-outcome_dat=read_outcome_data(snps=reshaped_mvmr_data$SNP,filename="UKBB_birthweight", beta_col = "beta",effect_allele_col = "ea",
-                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=reshaped_mvmr_data$SNP,filename="Maternal_Effect_European_meta_NG2019.txt", beta_col = "beta",effect_allele_col = "ea",
+                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
@@ -46,6 +46,7 @@ bw_nmr_input_2=new(Class = "mvMRInput", betaX = as.matrix(betaX_ivw_2), betaY=as
 
 ao=available_outcomes()
 ao=ao[grep("met-d", ao$id),]
+ao=ao[which(ao$id%in%nmr_metabolites_UKBB$Name),]
 
 prior_prob=c(0.01, 0.05, 0.10, 0.20, 0.30)
 mr.bw_BMA.out.step1=vector("list",length(prior_prob))
