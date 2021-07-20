@@ -3,12 +3,11 @@ library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);libra
 library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 # I. UKBB SNPs only
 
 # 1. Select genetic instruments, p-value<5x10^-8, Rsq<0.01
-nmr_metabolites_UKBB=read_excel("nmr_metabolites")
+nmr_metabolites_UKBB=read_excel("nmr_metabolites.xlsx")
 ao=available_outcomes()
 trait_linkage=ao[grep("met-d", ao$id),]
 nmr_metabolites_UKBB=nmr_metabolites_UKBB[which(nmr_metabolites_UKBB$Include=="yes"),]
@@ -20,8 +19,8 @@ exposure_data=extract_instruments(nmr_metabolites_UKBB$GWAS_id, p1=5e-8, clump=T
 
 # 3. Extract snp-outcome data for select SNPs, univariate instruments
 # load outcome data - Warrington GWAS of maternal genetic effects on birthweight, adjusted for fetal genotype
-outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="UKBB_birthweight",
-                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p", samplesize_col="n_ownBW")
+outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="Maternal_Effect_European_meta_NG2019.txt",
+                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p")
 
 # 4. Harmonise snp-exposure and snp-outcome data
 uvmr_harm=harmonise_data(exposure_data, outcome_dat, action=2)
@@ -42,24 +41,24 @@ estimates=merge(estimates, ao_1, by="trait")
 # multivariate instruments
 mvmr_instruments_ukbb=mv_extract_exposures(nmr_metabolites_UKBB$GWAS_id, clump_r2=0.01)
 
-nmr_metabolites_UKBB=read_excel("nmr_metabolites")
+nmr_metabolites_UKBB=read_excel("nmr_metabolites.xlsx")
 setDT(mvmr_instruments_ukbb)
-data_wide=dcast(mvmr_instruments_ukbb,SNP~id.exposure,value.var=list(names(mvmr_instruments_ukbb)[6:9]))
+data_wide=dcast(mvmr_instruments_ukbb,SNP~id.exposure,value.var=list(c("eaf.exposure", "beta.exposure", "se.exposure", "pval.exposure")))
 head(mvmr_instruments_ukbb)
 
 # make a matrix of snp, effect allele and other allele to merge
 snps=unique(mvmr_instruments_ukbb$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_instruments_ukbb)[c(1,4,5)]
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_instruments_ukbb[i,c(1,4,5)]
+  effect_alleles[i,]=mvmr_instruments_ukbb[i,c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
 merged=merge(effect_alleles, data_wide, by="SNP")
 head(merged)
 reshaped_mvmr_data=merged
-outcome_dat=read_outcome_data(snps=mvmr_instruments_ukbb$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
-                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=exposure_data$SNP, filename="Maternal_Effect_European_meta_NG2019.txt",
+                              snp_col="RSID", beta_col="beta", effect_allele_col="ea", other_allele_col="nea", eaf_col="eaf", pval_col="p")
 mvmr_harm=harmonise_data(mvmr_instruments_ukbb, outcome_dat, action=2) 
 
 setDT(mvmr_harm)
@@ -70,13 +69,13 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)==c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
   effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
 }
 merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt", snp_col="RSID", beta_col = "beta",
                               effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
 # to add in trait names for biological interpretation
 nmr_metabolites_UKBB=nmr_metabolites_UKBB[which(nmr_metabolites_UKBB$Include=="yes"),]
@@ -89,10 +88,10 @@ ao=ao[which(ao$id%in%nmr_metabolites_UKBB$Name),]
 # create bma-mvmr input class
 bw_beta=outcome_dat$beta.outcome
 bw_se=outcome_dat$se.outcome
-find_beta_cols=grep("beta.exposure",names(reshaped_mvmr_data))
-betaX_2=reshaped_mvmr_data[,find_beta_cols]
+find_beta_cols=grep("beta.exposure", names(reshaped_mvmr_data))
+betaX_2=reshaped_mvmr_data[which(reshaped_mvmr_data$SNP%in%outcome_dat$SNP),find_beta_cols]
 rf_2=colnames(betaX_2)
-rs_2=reshaped_mvmr_data[, 1]
+rs_2=reshaped_mvmr_data[which(reshaped_mvmr_data$SNP%in%outcome_dat$SNP), 1]
 betaX_2.2=sapply(betaX_2, as.numeric )        
 betaX_ivw_2=betaX_2.2/bw_se
 bw_beta_ivw_2=bw_beta/bw_se
