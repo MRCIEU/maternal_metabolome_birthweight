@@ -62,10 +62,10 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm)[c(1,9,10)]
+colnames(effect_alleles)=c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_harm[i,c("SNP", "eaf.outcome", "remove")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt", snp_col="RSID", beta_col = "beta",
