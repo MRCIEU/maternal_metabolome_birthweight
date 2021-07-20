@@ -4,7 +4,6 @@ library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);libra
 library(tidyverse); library(ggforestplot); library(mr.raps)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 mvmr_harm_wo_infl=read_csv("mvmr_harm.csv")
 infl=c("rs11601507", "rs35004366", "rs560887", "rs4844599", "rs12369443", "rs10008637", "rs2467853", "rs1958029", "rs61705884",
@@ -16,30 +15,30 @@ setDT(mvmr_harm_wo_infl)
 test=reshape(mvmr_harm_wo_infl, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
 col=as.numeric(grep("exposure|SNP", colnames(test)))
-test=test[,col]
-length(unique(test[,1]))
+test=test[, col]
+length(unique(test[, 1]))
 snps=unique(mvmr_harm_wo_infl$SNP)
-effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm_wo_infl)[c(1,9,10)]
+effect_alleles=as.data.frame(matrix(1:length(snps), nrow=length(snps),ncol=3))
+colnames(effect_alleles)=c("SNP", "effect_allele.exposure", "other_allele.exposure")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm_wo_infl[i,c(1,9,10)]
+  effect_alleles[i, ]=mvmr_instruments_ukbb[i, c("SNP", "effect_allele.exposure", "other_allele.exposure")]
 }
-merged=merge(effect_alleles, test, by="SNP")
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
-                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+merged=merge(effect_alleles, data_wide, by="SNP")
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col = "beta",effect_allele_col = "ea",
+                              other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 
 test=reshape(mvmr_harm_wo_infl, timevar="id.exposure", idvar=c("SNP"), direction="wide")
 test=as.matrix(test)
 col=as.numeric(grep("exposure|SNP", colnames(test)))
-test=test[,col]
-length(unique(test[,1]))
+test=test[, col]
+length(unique(test[, 1]))
 snps=unique(mvmr_harm_wo_infl$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm_wo_infl)[c(1,9,10)]
+colnames(effect_alleles)==c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm_wo_infl[i,c(1,9,10)]
+  effect_alleles[i,]=mvmr_harm[i, c("SNP", "eaf.outcome", "remove")]
 }
 merged=merge(effect_alleles, test, by="SNP")
 
