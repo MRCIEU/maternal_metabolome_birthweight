@@ -1,11 +1,10 @@
 # Excluding influential variants, using q-statistic
-setwd(")
+setwd("")
 devtools::install_github("NightingaleHealth/ggforestplot")
 library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);library(stringr);library(readxl)
 library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
-`%!in%`=Negate(`%in%`)
 
 mvmr_harm_wo_infl=read.csv("mvmr_harm.csv")[,-1]
 infl=c("rs3780181", "rs11708067", "rs4554975", "rs1260326", "rs2861422", "rs4722551", "rs4148005", "rs6567160",
@@ -20,17 +19,17 @@ test=test[,col]
 length(unique(test[,1]))
 snps=unique(mvmr_harm_wo_infl$SNP)
 effect_alleles=as.data.frame(matrix(1:length(snps),nrow=length(snps),ncol=3))
-colnames(effect_alleles)=names(mvmr_harm_wo_infl)[c(1,9,10)]
+colnames(effect_alleles)==c("SNP", "eaf.outcome", "remove")
 for (i in 1:length(snps))
 {
-  effect_alleles[i,1:3]=mvmr_harm_wo_infl[i,c(1,9,10)]
+  effect_alleles[i, ]=mvmr_harm_wo_infl[i, c("SNP", "eaf.outcome", "remove")]
 }
 merged=merge(effect_alleles, test, by="SNP")
-merged=merged[!duplicated(merged),]
+merged=merged[-duplicated(merged),]
 merged=merged[-which(merged$remove==1),]
 reshaped_mvmr_data=merged
-outcome_dat=read_outcome_data(snps=merged$SNP,filename="UKBB_birthweight",snp_col="RSID", beta_col = "beta",
-                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p",samplesize_col ="n_ownBW",phenotype_col = "Birthweight")
+outcome_dat=read_outcome_data(snps=merged$SNP,filename="Maternal_Effect_European_meta_NG2019.txt",snp_col="RSID", beta_col = "beta",
+                              effect_allele_col = "ea",other_allele_col = "nea" , eaf_col = "eaf", pval_col = "p", phenotype_col = "Birthweight")
 rs=reshaped_mvmr_data$SNP
 bw_beta=outcome_dat$beta.outcome
 bw_se=outcome_dat$se.outcome
