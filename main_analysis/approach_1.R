@@ -1,6 +1,4 @@
-devtools::install_github("NightingaleHealth/ggforestplot")
 library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);library(stringr);library(readxl)
-library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
 
@@ -83,7 +81,6 @@ nmr_metabolites_UKBB$Name=paste0("met-d-", nmr_metabolites_UKBB$Name)
 names(nmr_metabolites_UKBB)[which(names(nmr_metabolites_UKBB)=="Biomarker name")]="GWAS_id"
 ao=available_outcomes()
 ao=ao[grep("met-d", ao$id),]
-ao=ao[which(ao$id%in%nmr_metabolites_UKBB$Name),]
 
 # create bma-mvmr input class
 bw_beta=outcome_dat$beta.outcome
@@ -120,7 +117,7 @@ mr.bw_BMA.out.updated=apply(mr.bw_BMA.out.updated, 2, as.character)
 model_index=best.model.out.step1[1,1]
 Q = matrix(ncol=1, nrow=length(bw_beta_ivw_2))
 betaX_model=as.matrix(betaX_ivw_2[,unlist(model_index, ",")])
-title=model_index
+title=ao$trait[which(ao$id==gsub("beta.exposure.","",model_index))]
 sigma_vec=rep(0.5, ncol(betaX_model))
 H_fm=betaX_model%*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
 predicted_bw=H_fm %*% bw_beta_ivw_2
@@ -130,8 +127,40 @@ sort.ix = sort.int(maxQ, decreasing=TRUE, index.return=TRUE)
 Q_tab=cbind(rs_2,Q) 
 qchisq(0.05, 610, lower.tail=F)
 
-# remove: rs11601507, rs35004366, rs560887, rs4844599, rs12369443, rs10008637, rs2467853, rs1958029, rs61705884
-# rs1498694, rs34362588, rs534417, rs1274961, rs3768321, rs35823804, rs40270, rs4656292, rs17369578, rs12524288
-# rs143699220, rs7150045, rs11976955, rs4813543, rs9389268, rs218674, rs77960347, rs10062079, rs34707604, rs56139160
-# rs145679432, rs7078003, rs1965869, rs11564722, rs12206654, rs2631367, rs113312468
+#write.csv(Q_tab, "ukbb_all_qstats.csv")
 
+# remove: rs11601507, rs35004366, rs560887, rs4844599, rs12369443, rs10008637, rs2467853, rs1958029, rs61705884,rs1498694
+# rs34362588, rs534417, rs1274961, rs3768321, rs35823804, rs40270, rs4656292, rs17369578, rs12524288, rs143699220
+# rs7150045, rs11976955, rs4813543, rs9389268, rs218674, rs77960347, rs10062079, rs34707604, rs56139160, rs145679432
+# rs7078003, rs1965869, rs11564722, rs12206654, rs2631367, rs113312468
+
+png("q_plots_ukbb.png", height = 1000, width=1400)
+df = data.frame(x=predicted_bw, y =bw_beta_ivw_2, Q = Q, rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
+p = ggplot(df, aes(x , y)) +  geom_point(aes(colour = Q), size =4) + scale_colour_gradientn(colours =c("#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"))  +
+    labs(x = "Predicted beta bwt", y="Observed beta bwt", colour="Q") +
+    geom_hline(yintercept = 0, linetype="dotted") + geom_vline(xintercept = 0, linetype="dotted") +
+    geom_text(aes(label=ifelse(Q>7,as.character(rs[which(rs%in%outcome_dat$SNP)]),'')),position=position_jitter(width=.45,height=0.79),hjust=0.5, vjust=-1, size=5) +
+    theme(axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4), axis.title.x = element_text(size = 18),
+          axis.title.y = element_text(size = 16), legend.text=element_text(size=16),legend.title=element_text(size=18)) +
+    ggtitle(title)
+p
+dev.off()
+
+# Cooks D
+sigma_vec=rep(0.5, ncol(betaX_model))
+cD=as.numeric(cooksD(bw_beta_ivw_2, betaX_model,sigma_vec)$cooksD)
+cD_thresh=cooksD(bw_beta_ivw_2, betaX_model, sigma_vec)$cooksD_thresh
+cooksD_tab=data.frame(rs_2,cD)
+
+png("CD_plots_ukbb.png", height = 1000, width=1400)
+df=data.frame(x=predicted_bw, y =bw_beta_ivw_2, cD = cD, rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
+p=ggplot(df, aes(x, y)) + geom_point(aes(colour = cD), size =4) +
+  scale_colour_gradientn(colours = c("white", "orange", "red", "darkred"))  +
+  labs(x = "Predicted beta bwt", y="Observed beta bwt", colour="Cooks D") + geom_hline(yintercept = 0, linetype="dotted") +
+  geom_vline(xintercept = 0, linetype="dotted")  +
+  geom_text(aes(label=ifelse(cD>cD_thresh,as.character(rs[which(rs%in%outcome_dat$SNP)]),'')),hjust=0.5, vjust=-1, size=5)+
+  theme(axis.text.x = element_text(size = 13), axis.text.y = element_text(size = 13), axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), legend.text=element_text(size=16),legend.title=element_text(size=18))+
+  ggtitle(title)
+p
+dev.off()
