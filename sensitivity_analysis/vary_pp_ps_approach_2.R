@@ -79,7 +79,7 @@ mr.bw_BMA.out.step3=vector("list",length(sigma))
 best.model.out.step3=vector("list",length(sigma))
 for (i in 1:length(sigma))
 {
-  BMA_output=summarymvMR_SSS(bw_nmr_input_2, kmin=1, kmax=12, prior_prob=0.1, max_iter=100000)
+  BMA_output=summarymvMR_SSS(bw_nmr_input_2, kmin=1, kmax=12, prior_prob=0.1,sigma=sigma[i], max_iter=100000)
   mr.bw_BMA.out.step3[[i]]=sss.report.mr.bma(BMA_output, top=10)
   best.model.out.step3[[i]]=sss.report.best.model(BMA_output, prior_sigma=sigma[i], top=10)
   print(i)
