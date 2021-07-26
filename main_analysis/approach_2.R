@@ -1,6 +1,4 @@
-devtools::install_github("NightingaleHealth/ggforestplot")
 library(readr); library(ggplot2); library(data.table);library(TwoSampleMR);library(stringr);library(readxl)
-library(tidyverse); library(ggforestplot)
 source("VZ_summary_mvMR_SSS_function.R")
 source("VZ_summary_mvMR_BF_function.R")
 
@@ -119,3 +117,52 @@ qchisq(0.05, 111, lower.tail=F)
 
 # remove: rs34346326, rs41272659, rs12325419, rs118182637, rs2079742, rs4410345, rs4149307
 # rs10211524, rs2657879, rs6729711, rs145717049
+
+# Q-statistics, df~= number of SNPs
+model_index=best.model.out.step1[1,1]
+title=ao$trait[which(ao$id==gsub("beta.exposure.","",model_index))]
+Q = matrix(ncol=1, nrow=length(bw_beta_ivw_2))
+betaX_model=as.matrix(betaX_ivw_2[,unlist(model_index, ",")])
+sigma_vec=rep(0.5, ncol(betaX_model))
+H_fm=betaX_model%*% solve(t(betaX_model) %*% betaX_model + sigma_vec^{-2} ) %*% t(betaX_model)
+predicted_bw=H_fm %*% bw_beta_ivw_2
+Q=(bw_beta_ivw_2-predicted_bw)^2
+maxQ=apply(Q, MARGIN=1, FUN=max)
+sort.ix = sort.int(maxQ, decreasing=TRUE, index.return=TRUE)
+Q_tab=cbind(rs_2,Q) 
+qchisq(0.05, 111, lower.tail=F)
+
+write.csv(Q_tab, "kett_all_qstats.csv")
+# remove: rs34346326, rs41272659, rs12325419, rs118182637, rs2079742, rs4410345, rs4149307
+# rs10211524, rs2657879, rs6729711, rs145717049
+
+png("q_plots_kett.png", height = 1000, width=1400)
+df = data.frame(x=predicted_bw, y =bw_beta_ivw_2, Q = Q, rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
+p = ggplot(df, aes(x , y)) +  geom_point(aes(colour = Q), size =4) + scale_colour_gradientn(colours =c("#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00"))  +
+  labs(x = "Predicted beta bwt", y="Observed beta bwt", colour="Q") +
+  geom_hline(yintercept = 0, linetype="dotted") + geom_vline(xintercept = 0, linetype="dotted") +
+  geom_text(aes(label=ifelse(Q>6,as.character(rs[which(rs%in%outcome_dat$SNP)]),'')),position=position_jitter(width=.35,height=0.4),hjust=0.5, vjust=-1, size=5) +
+  theme(axis.text.x = element_text(size = 4), axis.text.y = element_text(size = 4), axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 16), legend.text=element_text(size=16),legend.title=element_text(size=18)) +
+  ggtitle(title)
+p
+dev.off()
+
+# Cooks D
+sigma_vec=rep(0.5, ncol(betaX_model))
+cD=as.numeric(cooksD(bw_beta_ivw_2, betaX_model,sigma_vec)$cooksD)
+cD_thresh=cooksD(bw_beta_ivw_2, betaX_model, sigma_vec)$cooksD_thresh
+cooksD_tab=data.frame(rs_2,cD)
+
+png("CD_plots_kett.png", height = 1000, width=1400)
+df=data.frame(x=predicted_bw, y =bw_beta_ivw_2, cD = cD, rs=rs_2[which(rs_2%in%outcome_dat$SNP)])
+p=ggplot(df, aes(x, y)) + geom_point(aes(colour = cD), size =4) +
+  scale_colour_gradientn(colours = c("white", "orange", "red", "darkred"))  +
+  labs(x = "Predicted beta bwt", y="Observed beta bwt", colour="Cooks D") + geom_hline(yintercept = 0, linetype="dotted") +
+  geom_vline(xintercept = 0, linetype="dotted")  +
+  geom_text(aes(label=ifelse(cD>cD_thresh,as.character(rs[which(rs%in%outcome_dat$SNP)]),'')),hjust=0.5, vjust=-1, size=5)+
+  theme(axis.text.x = element_text(size = 13), axis.text.y = element_text(size = 13), axis.title.x = element_text(size = 18),
+        axis.title.y = element_text(size = 18), legend.text=element_text(size=16),legend.title=element_text(size=18))+
+  ggtitle(title)
+p
+dev.off()
